@@ -1,10 +1,10 @@
-var mongoose = require("mongoose");
-var Schema = mongoose.Schema;
+let mongoose = require("mongoose");
+let Schema = mongoose.Schema;
 
-var likesFields = require('./userId');
-var likesSchema = new Schema(likesFields,{timestamps: true});
+let likesFields = require('./userId');
+let likesSchema = new Schema(likesFields,{timestamps: true});
 
-var commentFields = {
+let commentFields = {
     comment: {
         type: String,
         required: true
@@ -14,13 +14,13 @@ var commentFields = {
         ref: 'User',
         required: true
     },
-    postId: {
-        type: String,
+    post: {
+        type: mongoose.Schema.Types.String,
+        ref: 'Post',
         required: true
     },
     likes: [likesSchema]
 };
 
-
-var Comment = new Schema(commentFields,{timestamps: true});
+let Comment = new Schema(commentFields,{timestamps: true});
 module.exports = mongoose.model('Comment', Comment);

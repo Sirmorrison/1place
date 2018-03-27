@@ -13,7 +13,7 @@ exports.setupResponder = function(req, res, next)
 
 	res.success = function(data){
 		if (!res.headersSent){
-			var response = {
+			let response = {
 				status: "success",
 				code: 200,
 				data: data
@@ -26,7 +26,7 @@ exports.setupResponder = function(req, res, next)
 	//some error not due to server
 	res.serverError = function(error){
 		if (!res.headersSent){
-			var response = {
+			let response = {
 				status: "error",
 				description: "Server Error",
 				code: 500,
@@ -40,7 +40,7 @@ exports.setupResponder = function(req, res, next)
 	//token failed validation or was not supplied
 	res.unauthorized = function(error){
 		if (!res.headersSent){
-			var response = {
+			let response = {
 				status: "error",
 				description: "Unauthorized",
 				code: 401,
@@ -55,7 +55,7 @@ exports.setupResponder = function(req, res, next)
 	//user does not have necessary permissions to perform requested action
 	res.notAllowed = function(error){
 		if (!res.headersSent){
-			var response = {
+			let response = {
 				status: "error",
 				description: "Unauthorized",
 				code: 401,
@@ -70,7 +70,7 @@ exports.setupResponder = function(req, res, next)
 	//user caused error, improper or invalid request
 	res.badRequest = function(error, error_code){
 		if (!res.headersSent){
-			var response = {
+			let response = {
 				status: "error",
 				description: "Bad Request",
 				code: 400,

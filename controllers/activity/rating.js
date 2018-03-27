@@ -1,11 +1,11 @@
-var express = require('express');
-var router = express.Router();
+let express = require('express');
+let router = express.Router();
 
-var User = require('../../models/user');
+let User = require('../../models/user');
 
 router.post('/:userId', function (req,res) {
 
-    var rating = req.body.rating,
+    let rating = req.body.rating,
         userId = req.params.userId,
         ratedBy = req.user.id;
 
@@ -13,7 +13,7 @@ router.post('/:userId', function (req,res) {
         return res.badRequest('Rating is required and must be between 1 to 5');
     }
 
-    var info = {
+    let info = {
         rating: rating,
         ratedBy: ratedBy
     };
@@ -37,18 +37,18 @@ router.post('/:userId', function (req,res) {
 
 router.post('/:userId/1', function (req, res) {
 
-    var rating = req.body.rating;
+    let rating = req.body.rating;
 
     if (typeof(rating) !== 'number' || (rating < 1 || rating > 5)) {
         return res.badRequest('Rating is required and must be between 1 to 5');
     }
 
-    var newRating = {
+    let newRating = {
         rating: rating,
         ratedBy: req.user.id
     };
 
-    var currentRating = {
+    let currentRating = {
         _id: req.params.userId
     };
 
@@ -77,17 +77,17 @@ router.post('/:userId/1', function (req, res) {
 
 router.post('/:userId/rat', function (req, res) {
 
-    var rating = req.body.rating;
+    let rating = req.body.rating;
 
     if (typeof(rating) !== 'number' || (rating < 1 || rating > 5)) {
         return res.badRequest('Rating is required and must be between 1 to 5');
     }
 
-    var newRating = {
+    let newRating = {
         rating: rating,
         ratedBy: req.user.id
     };
-    var updateOperation = {
+    let updateOperation = {
         '$pull': {
             'rating': {
                 $elemMatch: {

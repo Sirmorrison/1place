@@ -1,19 +1,19 @@
-var AWS = require('aws-sdk');
-var async = require('async');
-var bucketName = "rudigo";
-var path = require('path');
-var fs = require('fs');
-var pathParams, image, imageName;
+let AWS = require('aws-sdk');
+let async = require('async');
+let bucketName = "rudigo";
+let path = require('path');
+let fs = require('fs');
+let pathParams, image, imageName;
 
 
 /** Load Config File */
 AWS.config.loadFromPath('tsconfig.json');
 
 /** After config file load, create object for s3*/
-var s3 = new AWS.S3({region: 'us-west-2'});
-var createMainBucket = function (callback) {
+let s3 = new AWS.S3({region: 'us-west-2'});
+let createMainBucket = function (callback) {
     // Create the parameters for calling createBucket
-    var bucketParams = {
+    let bucketParams = {
         Bucket : bucketName
     };
     s3.headBucket(bucketParams, function(err, data) {
@@ -33,8 +33,8 @@ var createMainBucket = function (callback) {
     })
 };
 
-var createItemObject = function(callback) {
-    var params = {
+let createItemObject = function(callback) {
+    let params = {
         Bucket: bucketName,
         Key: imageName,
         ACL: 'public-read',

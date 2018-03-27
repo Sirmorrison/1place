@@ -1,13 +1,13 @@
-// var AWS = require('aws-sdk');
-var config = require('../tsconfig.json');
-var fs = require('fs'),
+// let AWS = require('aws-sdk');
+let config = require('../tsconfig.json');
+let fs = require('fs'),
     S3FS = require('s3fs'),
     bucketName = "rudigo";
     /** Load Config File */
 // AWS.config.loadFromPath('tsconfig.json');
 
 /** After config file load, create object for s3*/
-// var s3fsImpl = new AWS.S3({region: 'us-west-2'});
+// let s3fsImpl = new AWS.S3({region: 'us-west-2'});
 
 s3fsImpl = new S3FS('bucketName', config);
 
@@ -22,8 +22,8 @@ s3fsImpl.create(function(err, data) {
 });
 
 exports.upload = function (req, res) {
-    var file = req.files.file;
-    var stream = fs.createReadStream(file.path);
+    let file = req.files.file;
+    let stream = fs.createReadStream(file.path);
     return s3fsImpl.writeFile(file.originalFilename, stream).then(function () {
         fs.unlink(file.path, function (err) {
             if (err) {

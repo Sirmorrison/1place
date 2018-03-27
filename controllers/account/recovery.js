@@ -1,17 +1,17 @@
-var express = require('express');
-var router = express.Router();
+let express = require('express');
+let router = express.Router();
 
 const config = require('../../config');
-var FirebaseAuth = require('firebaseauth');
-var firebase = new FirebaseAuth(config.FIREBASE_API_KEY);
+let FirebaseAuth = require('firebaseauth');
+let firebase = new FirebaseAuth(config.FIREBASE_API_KEY);
 
 const validator = require('../../utils/validator');
 
 /*** END POINT FOR REQUESTING PASSWORD CHANGE USING EMAIL */
 router.post('/password', function(req, res){
-    var email = req.body.email;
+    let email = req.body.email;
 
-    var validatedEmail = validator.isValidEmail(res, email);
+    let validatedEmail = validator.isValidEmail(res, email);
     if (!validatedEmail)
         return;
 
@@ -27,8 +27,8 @@ router.post('/password', function(req, res){
 /*** END POINT FOR UPDATING PASSWORD ONCE THE PASSWORD RESET EMAIL HAS BEEN SENT **MAY NOT BE NECESSARY** */
 router.post('/password/change', function(req, res) {
 
-    var oobCode = req.body.oobCode;
-    var newPassword = req.body.newPassword;
+    let oobCode = req.body.oobCode;
+    let newPassword = req.body.newPassword;
 
     if (typeof(newPassword) !== 'string' || newPassword.length < 6){
         return res.badRequest('newPassword is required and must be 6 characters or more');

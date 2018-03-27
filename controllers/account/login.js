@@ -1,5 +1,5 @@
 const express = require('express');
-var router = express.Router();
+let router = express.Router();
 
 const config = require('../../config');
 const FirebaseAuth = require('firebaseauth');
@@ -11,10 +11,10 @@ const User = require('../../models/user');
 
 /*** END POINT FOR LOGIN WITH EMAIL */
 router.post('/', function(req, res){
-    var email = req.body.email;
-    var password = req.body.password;
+    let email = req.body.email;
+    let password = req.body.password;
 
-    var validatedPassword = validate.isValidPassword(res, password);
+    let validatedPassword = validate.isValidPassword(res, password);
 
     if (!validatedPassword)
         return;
@@ -34,7 +34,7 @@ router.post('/', function(req, res){
                     return res.badRequest("Something unexpected happened");
                 }
 
-                var userInfo = {
+                let userInfo = {
                     name: user.name,
                     token: firebaseResponse.token,
                     refreshToken: firebaseResponse.refreshToken,
@@ -56,14 +56,14 @@ router.post('/', function(req, res){
                 return res.badRequest("phone number not found please check and try again or use your email address");
             }
 
-            var email = user.email;
+            let email = user.email;
 
             emailLogin(email, password, function(err, result){
                 if (err){
                     return res.badRequest(err.message);
                 }
 
-                var info = {
+                let info = {
                     name: result.user.displayName,
                     token: result.token,
                     refreshToken: result.refreshToken,
@@ -94,7 +94,7 @@ function emailLogin(email, password, callback){
 
 /*** END POINT FOR LOGIN WITH FACEBOOK */
 router.post('/facebook', function(req, res){
-    var access_token = req.body.access_token;
+    let access_token = req.body.access_token;
     firebase.loginWithFacebook(access_token, function(err, firebaseResponse){
         if (err){
             //firebase errors come as object {code, message}, return only message
@@ -114,7 +114,7 @@ router.post('/facebook', function(req, res){
 
 /*** END POINT FOR LOGIN WITH INSTAGRAM */
 router.post('/google', function(req, res) {
-    var access_token = req.body.access_token;
+    let access_token = req.body.access_token;
     firebase.loginWithGoogle(access_token, function(err, firebaseResponse){
         if (err){
             //firebase errors come as object {code, message}, return only message
@@ -132,28 +132,48 @@ router.post('/google', function(req, res) {
     });
 });
 
-function processFirebaseSocialLogin(firebaseResponse, callback){
-    User.findById(firebaseResponse.user.id, function(err, user) {
-        if (err){
+function processFirebaseSocialLogin(firebaseResponse, callback) {
+    User.findOne({_id: firebaseResponse.user.id}, function (err, user) {
+        if (err) {
+            console.log(err);
             return callback("Something unexpected happened");
         }
 
-        var userInfo = {
-            name: firebaseResponse.user.displayName,
-            photo: firebaseResponse.user.photoUrl,
-            token: firebaseResponse.token,
-            refreshToken: firebaseResponse.refreshToken,
-            expiryMilliseconds: firebaseResponse.expiryMilliseconds
-        };
-
         if (!user) {
-            userInfo.newUser = true;
+            let info = {
+                _id: firebaseResponse.user.id,
+                name: firebaseResponse.user.displayName,
+                email: firebaseResponse.user.email,
+                photoUrl: firebaseResponse.user.photoUrl,
+                // d_o_b: firebaseResponse.rawUserInfo.birthday
+            };
+
+            User.create(info, function (err, user) {
+                if (err) {
+                    console.log(err);
+                    return callback("Something unexpected happened");
+                }
+
+                let info = {
+                    name : user.name,
+                    photoUrl : user.photoUrl,
+                    token: firebaseResponse.token,
+                    refreshToken: firebaseResponse.refreshToken,
+                    expiryMilliseconds: firebaseResponse.expiryMilliseconds
+                };
+                return callback(null, info);
+            });
         }
         else {
-            userInfo.designer = user.designer;
+            let userInfo = {
+                name : user.name,
+                photoUrl : user.photoUrl,
+                token: firebaseResponse.token,
+                refreshToken: firebaseResponse.refreshToken,
+                expiryMilliseconds: firebaseResponse.expiryMilliseconds
+            };
+            return callback(null, userInfo);
         }
-
-        return callback(null, userInfo);
     });
 }
 

@@ -31,7 +31,7 @@ router.get('/', function (req,res) {
 /** endpoint for posting event list by admin*/
 router.post('/', function (req,res) {
 
-    var event_type = req.body.event_type;
+    let event_type = req.body.event_type;
 
     User.findById(req.user.id, function (err, user) {
         if (err) {
@@ -46,7 +46,7 @@ router.post('/', function (req,res) {
         if (typeof(event_type) !== 'string' || event_type.trim().length <= 0) {
             return res.badRequest('Type of Event is required, cannot be empty and must be string');
         }
-        var event = {
+        let event = {
             postedBy:  req.user.id,
             event_type: event_type
         };
@@ -65,7 +65,7 @@ router.post('/', function (req,res) {
 /** editing event by admin USING the ID*/
 router.post('/:event_typeId', function (req,res) {
 
-    var event_type = req.body.event_type;
+    let event_type = req.body.event_type;
 
     User.findById(req.user.id, function (err, user) {
         if (err) {
@@ -81,7 +81,7 @@ router.post('/:event_typeId', function (req,res) {
             return res.badRequest('Type of Event is required, cannot be empty and must be string');
         }
 
-        var event = {
+        let event = {
             postedBy:  req.user.id,
             event_type: event_type
         };

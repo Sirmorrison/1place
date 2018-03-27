@@ -1,8 +1,8 @@
 const config = require('../config');
-var FirebaseAuth = require('firebaseauth');
-var firebase = new FirebaseAuth(config.FIREBASE_API_KEY);
+let FirebaseAuth = require('firebaseauth');
+let firebase = new FirebaseAuth(config.FIREBASE_API_KEY);
 
-var customCallback = function(req, res, next, error, data){
+let customCallback = function(req, res, next, error, data){
     if (error === 'ERROR_NO_TOKEN'){
         //token not supplied
         //handle error case

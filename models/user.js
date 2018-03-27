@@ -1,10 +1,10 @@
-var mongoose = require("mongoose");
-var Schema = mongoose.Schema;
+let mongoose = require("mongoose");
+let Schema = mongoose.Schema;
 
-var userIdField = require('./userId');
-var userIdSchema = new Schema(userIdField,{timestamps: true});
+let userIdField = require('./userId');
+let userIdSchema = new Schema(userIdField,{timestamps: true});
 
-var fields = {
+let fields = {
     _id: {
         type: String,
         required: true
@@ -13,37 +13,36 @@ var fields = {
         type: String,
         required: true
     },
-    d_o_b: {
-        type: Number,
-        required: true
-    },
-    username: {
+    username: String,
+    phone_number: {
         type: String,
         unique: true
+    },
+    email: {
+        type: String,
+        unique: true
+    },
+    d_o_b: {
+        type: Number,
+        // required: true
     },
     admin: {
         type: Boolean,
         default: false,
         required: true
     },
-    phone_number: {
-        type: String,
-        unique: true,
-        required: true
-    },
     country: String,
     city: String,
-    email: String,
     gender: String,
     status: String,
     bio: String,
-    photo: String,
+    photoUrl: String,
     coverImageUrl: String,
     address:String,
     followers:[userIdSchema],
-    following:[userIdSchema]
+    following:[userIdSchema],
 };
 
-var User = new Schema(fields, { timestamps: true });
+let User = new Schema(fields, { timestamps: true });
 
 module.exports = mongoose.model('User', User);

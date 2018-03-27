@@ -70,7 +70,7 @@ router.post('/', function(req, res){
                 if (err){
                     return res.badRequest("Something unexpected happened");
                 }
-                info = {
+                var info = {
                     coverImageUrl: business._id,
                     photo: business.biz_name
                 };

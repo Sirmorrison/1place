@@ -1,13 +1,17 @@
-var express = require('express');
-var router = express.Router();
-var moment = require('moment');
+const express = require('express');
+const router = express.Router();
+const moment = require('moment');
+let fs = require('fs');
 
-const config = require('../../config');
-var FirebaseAuth = require('firebaseauth');
-var firebase = new FirebaseAuth(config.FIREBASE_API_KEY);
+const config = require('../../config'),
+      FirebaseAuth = require('firebaseauth'),
+      firebase = new FirebaseAuth(config.FIREBASE_API_KEY);
 
-const validator = require('../../utils/validator');
-var User = require('../../models/user');
+let cloudinary = require('cloudinary');
+    cloudinary.config(config.cloudinary);
+
+let validator = require('../../utils/validator'),
+    User = require('../../models/user');
 
 /*** END POINT FOR GETTING PERSONAL PROFILE BY CURRENTLY LOGGED IN USER */
 router.get('/', function(req, res){
@@ -15,12 +19,13 @@ router.get('/', function(req, res){
     User.findById(req.user.id)
         .populate({
             path: 'followers.userId',
-            select:'name photo email coverImageUrl'
+            select:'name photoUrl email coverImageUrl'
         })
         .populate({
             path: 'following.userId',
-            select:'name photo email coverImageUrl'
+            select:'name photoUrl email coverImageUrl'
         })
+        .sort({date: -1})
         .exec(function(err, user) {
 
             if (err) {
@@ -30,8 +35,7 @@ router.get('/', function(req, res){
                 return res.badRequest("YOU NEED TO BE A REGISTERED USER TO VIEW GET ACCESS");
             }
 
-            var d_o_b = moment(user.d_o_b),
-                info = {
+            let info = {
                 coverImageUrl: user.coverImageUrl,
                 photo: user.photoUrl,
                 name: user.name,
@@ -41,7 +45,7 @@ router.get('/', function(req, res){
                 address: user.address,
                 bio: user.bio,
                 status: user.status,
-                d_o_b: d_o_b,
+                d_o_b: moment(user.d_o_b),
                 nFollowers: user.followers.length,
                 nFollowing: user.following.length,
                 followers: user.followers,
@@ -72,7 +76,7 @@ router.get('/:userId', function(req, res){
                 return res.badRequest("could not find user with id: "+ req.params.userId);
             }
 
-            var d_o_b = moment(user.d_o_b),
+            let d_o_b = moment(user.d_o_b),
 
                 info = {
                     coverImageUrl: user.coverImageUrl,
@@ -98,7 +102,7 @@ router.get('/:userId', function(req, res){
 /*** END POINT FOR UPDATING PROFILE INFORMATION OF CURRENTLY LOGGED IN USER */
 router.post('/update', function(req, res){
 
-    var name = req.body.name,
+    let name = req.body.name,
         address = req.body.address,
         bio = req.body.bio,
         country = req.body.country,
@@ -111,65 +115,57 @@ router.post('/update', function(req, res){
     if (!(name || d_o_b || address || bio || country || city || status || gender )){
         return res.badRequest('Please input the value to the field you would love to update');
     }
-   
+
+    let profile = {};
+
     if (bio){
-        var vBio = validator.isBio(res, bio);
+        let vBio = validator.isSentence(res, bio);
         if(!vBio)
             return;
+        profile.bio = bio;
     }
     if (country){
-        var vCountry = validator.isCountry(res, country);
+        let vCountry = validator.isWord(res, country);
         if(!vCountry)
             return;
+        profile.country = country;
     }
     if (city){
-        var vCity = validator.isCity(res, city);
+        let vCity = validator.isWord(res, city);
         if(!vCity)
             return;
+        profile.city = city;
     }
     if (gender){
-        var vGender = validator.isGender(res, gender);
+        let vGender = validator.isWord(res, gender);
         if(!vGender)
             return;
+        profile.gender = gender;
     }
     if (status){
-        var vStatus = validator.isStatus(res, status);
+        let vStatus = validator.isSentence(res, status);
         if(!vStatus)
             return;
+        profile.status = status;
     }
     if (name){
-        var fullname = validator.isFullname(res, name);
-        if(!fullname)
+        let fullName = validator.isFullname(res, name);
+        if(!fullName)
             return;
+        profile.name = name;
     }
     if (address){
-        var address1 = validator.isAddress(res, address);
+        let address1 = validator.isSentence(res, address);
         if(!address1)
             return;
+        profile.address = address;
     }
     if (d_o_b){
-        var date = validator.isOverMinimumAge(res, d_o_b);
+        let date = validator.isOverMinimumAge(res, d_o_b);
         if(!date)
             return;
-    }
-
-    var profile = {};
-    if (name)
-        profile.name = name;
-    if (d_o_b)
         profile.d_o_b = d_o_b;
-    if (address)
-        profile.address = address;
-    if (bio)
-        profile.bio = bio;
-    if (country)
-        profile.country = country;
-    if (city)
-        profile.city = city;
-    if (gender)
-        profile.gender = gender;
-    if (status)
-        profile.status = status;
+    }
 
     User.findByIdAndUpdate(req.user.id, {$set: profile}, {new: true})
         .populate({
@@ -181,51 +177,51 @@ router.post('/update', function(req, res){
             select:'name photo email coverImageUrl'
         })
         .exec(function(err, user) {
-            if (err) {
-                console.log(err);
-                return res.serverError("Something unexpected happened");
-            }
-            if (!user) {
-                return res.badRequest("User profile not found please be sure you are still logged in");
-            }
+                if (err) {
+                    console.log(err);
+                    return res.serverError("Something unexpected happened");
+                }
+                if (!user) {
+                    return res.badRequest("User profile not found please be sure you are still logged in");
+                }
 
-            var info = {
-                coverImageUrl: user.coverImageUrl,
-                photo: user.photoUrl,
-                name: user.name,
-                email: user.email,
-                username: user.username,
-                phone_number: user.phone_number,
-                address: user.address,
-                bio: user.bio,
-                status: user.status,
-                d_o_b: user.d_o_b,
-                followers: user.followers,
-                following: user.following
-            };
+                let info = {
+                    coverImageUrl: user.coverImageUrl,
+                    photo: user.photoUrl,
+                    name: user.name,
+                    email: user.email,
+                    username: user.username,
+                    phone_number: user.phone_number,
+                    address: user.address,
+                    bio: user.bio,
+                    status: user.status,
+                    d_o_b: user.d_o_b,
+                    followers: user.followers,
+                    following: user.following
+                };
 
-            if (name){
-                var token = req.body.token || req.query.token || req.headers['x-access-token'];
-                firebase.updateProfile(token, name, function (err) {
-                    if (err) {
-                        console.log(err);
-                    }
+                if (name){
+                    let token = req.body.token || req.query.token || req.headers['x-access-token'];
+                    firebase.updateProfile(token, name, function (err) {
+                        if (err) {
+                            console.log(err);
+                        }
 
+                        res.success(info);
+                    });
+                }
+                else{
                     res.success(info);
-                });
+                }
             }
-            else{
-                res.success(info);
-            }
-        }
-    )
+        );
 });
 
 /*** END POINT FOR UPDATING PROFILE USERNAME OF CURRENTLY LOGGED IN USER */
 router.post('/username', function(req, res){
 
-    var username = req.body.username,
-        validatedUsername = validator.isUsername(res,username);
+    let username = req.body.username,
+        validatedUsername = validator.isUsername(res, username);
 
     if (!validatedUsername)
         return;
@@ -255,14 +251,13 @@ router.post('/username', function(req, res){
             })
             .exec(function(err, user) {
                 if (err) {
-                    console.log(err);
                     return res.serverError("Something unexpected happened");
                 }
                 if (!user) {
                     return res.badRequest("User profile not found please be sure you are still logged in");
                 }
 
-                var info = {
+                let info = {
                     coverImageUrl: user.coverImageUrl,
                     photo: user.photoUrl,
                     name: user.name,
@@ -282,10 +277,66 @@ router.post('/username', function(req, res){
     })
 });
 
+/*** END POINT FOR UPDATING PROFILE PICTURE OF CURRENTLY LOGGED IN USER */
+router.post('/photo', function(req, res){
+
+    let file = req.files.null;
+    console.log(file.path);
+
+    let validated = validator.isFile(res, file);
+    if(!validated)
+        return;
+
+    cloudinary.v2.uploader.upload(file.path, function(err, result) {
+        if (err) {
+            return res.badRequest(err);
+        }else {
+            let photoUrl = result.url;
+
+            User.findByIdAndUpdate(req.user.id, {$set: {photoUrl: photoUrl}}, {new: true})
+                .populate({
+                    path: 'followers.userId',
+                    select: 'name photo email coverImageUrl'
+                })
+                .populate({
+                    path: 'following.userId',
+                    select: 'name photo email coverImageUrl'
+                })
+                .exec(function (err, user) {
+                        if (err) {
+                            console.log(err);
+                            return res.serverError("Something unexpected happened");
+                        }
+                        if (!user) {
+                            return res.badRequest("User profile not found please be sure you are still logged in");
+                        }
+
+                        let info = {
+                            coverImageUrl: user.coverImageUrl,
+                            photo: user.photoUrl,
+                            name: user.name,
+                            email: user.email,
+                            username: user.username,
+                            phone_number: user.phone_number,
+                            address: user.address,
+                            bio: user.bio,
+                            status: user.status,
+                            d_o_b: user.d_o_b,
+                            followers: user.followers,
+                            following: user.following
+                        };
+                        res.success(info);
+                    }
+                )
+        }
+    });
+    // fs.unlink(file);
+});
+
 /*** END POINT FOR UPDATING PROFILE PHONE NUMBER OF CURRENTLY LOGGED IN USER */
 router.post('/phoneNumber', function(req, res){
 
-    var phone_number = req.body.phone_number,
+    let phone_number = req.body.phone_number,
         validatedPhoneNumber = validator.isValidPhoneNumber(res, phone_number);
 
     if (!validatedPhoneNumber)
@@ -321,7 +372,7 @@ router.post('/phoneNumber', function(req, res){
                     return res.badRequest("User profile not found please be sure you are still logged in");
                 }
 
-                var info = {
+                let info = {
                     coverImageUrl: user.coverImageUrl,
                     photo: user.photoUrl,
                     name: user.name,
@@ -344,23 +395,23 @@ router.post('/phoneNumber', function(req, res){
 /*** END POINT FOR FOR REQUESTING PASSWORD CHANGE BY LOGGED IN USER */
 router.post('/edit_password', function(req, res){
 
-    var password = req.body.password;
+    let password = req.body.password;
 
-    var validatedPassword = validator.isValidPassword(res, password);
+    let validatedPassword = validator.isValidPassword(res, password);
 
     if (!validatedPassword)
         return;
 
-    var token = req.body.token || req.query.token || req.headers['x-access-token'];
+    let token = req.body.token || req.query.token || req.headers['x-access-token'];
     firebase.changePassword(token, password, function(err, authData){
         if (err){
             return res.serverError(err.message);
         }
-        else
-            var info = {
-                token: authData.token,
-                refreshToken: authData.refreshToken
-            };
+
+        let info = {
+            token: authData.token,
+            refreshToken: authData.refreshToken
+        };
 
         res.success(info);
     });

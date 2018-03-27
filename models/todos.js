@@ -1,7 +1,7 @@
-var mongoose = require("mongoose");
-var Schema = mongoose.Schema;
+let mongoose = require("mongoose");
+let Schema = mongoose.Schema;
 
-var Todo = new Schema({
+let Todo = new Schema({
     todo_type: {
         type: String,
         required: true

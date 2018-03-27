@@ -1,7 +1,7 @@
-var mongoose = require("mongoose");
-var Schema = mongoose.Schema;
+let mongoose = require("mongoose");
+let Schema = mongoose.Schema;
 
-var eventFields = {
+let eventFields = {
     event_type: {
         type: String,
         required: true
@@ -25,5 +25,5 @@ var eventFields = {
 };
 
 
-var Comment = new Schema(eventFields,{timestamps: true});
+let Comment = new Schema(eventFields,{timestamps: true});
 module.exports = mongoose.model('Comment', Comment);

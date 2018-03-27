@@ -1,27 +1,27 @@
-var mongoose = require("mongoose");
-var Schema = mongoose.Schema;
+let mongoose = require("mongoose");
+let Schema = mongoose.Schema;
 
-var userIdField = require('./userId');
-var userIdSchema = new Schema(userIdField,{timestamps: true});
+let userIdField = require('./userId');
+let userIdSchema = new Schema(userIdField,{timestamps: true});
 
-var addressFields = require('./address');
-var addressSchema = new Schema(addressFields);
+let addressFields = require('./address');
+let addressSchema = new Schema(addressFields);
 
-var phoneFields = require('./address');
-var phoneSchema = new Schema(phoneFields);
+let phoneFields = require('./address');
+let phoneSchema = new Schema(phoneFields);
 
-var ratingFields = require('./ratings');
-var ratingSchema = new Schema(ratingFields, {timestamps: true});
+let ratingFields = require('./ratings');
+let ratingSchema = new Schema(ratingFields, {timestamps: true});
 
-var emailFields = require('./emails');
-var emailSchema = new Schema(emailFields, {timestamps: true});
+let emailFields = require('./emails');
+let emailSchema = new Schema(emailFields, {timestamps: true});
 
-var fields = {
+let fields = {
     _id: {
         type: String,
         required: true
     },
-    biz_name: {
+    let: {
         type: String,
         required: true,
         unique: true
@@ -45,6 +45,6 @@ var fields = {
     following:[userIdSchema]
 };
 
-var User = new Schema(fields, { timestamps: true });
+let User = new Schema(fields, { timestamps: true });
 
 module.exports = mongoose.model('User', User);

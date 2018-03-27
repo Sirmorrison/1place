@@ -1,7 +1,8 @@
-var mongoose = require("mongoose");
+let mongoose = require("mongoose");
+let Schema = mongoose.Schema;
 
-var likesFields = require('./userId');
-var likesSchema = new Schema(likesFields,{timestamps: true});
+let likesFields = require('./userId');
+let likesSchema = new Schema(likesFields, {timestamps: true});
 
 module.exports = {
     comment: {
@@ -11,6 +12,11 @@ module.exports = {
     commentedBy: {
         type: mongoose.Schema.Types.String,
         ref: 'User',
+        required: true
+    },
+    post: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Post',
         required: true
     },
     likes: [likesSchema]

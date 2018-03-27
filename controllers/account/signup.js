@@ -1,27 +1,27 @@
-var express = require('express');
-var router = express.Router();
-var moment = require('moment');
+let express = require('express');
+let router = express.Router();
+let moment = require('moment');
 
 const config = require('../../config');
-var FirebaseAuth = require('firebaseauth');
-var firebase = new FirebaseAuth(config.FIREBASE_API_KEY);
+let FirebaseAuth = require('firebaseauth');
+let firebase = new FirebaseAuth(config.FIREBASE_API_KEY);
 
 const protector = require('../../middlewares/protector');
 const validator = require('../../utils/validator');
 
-var User = require('../../models/user');
+let User = require('../../models/user');
 
 /*** END POINT FOR SIGNUP WITH EMAIL */
 router.post('/', function(req, res){
 
-    var email = req.body.email,
+    let email = req.body.email,
         password = req.body.password,
         name = req.body.name,
         admin = req.body.admin,
         date_o_b = req.body.d_o_b,
         phone_number = req.body.phone_number;
 
-    var d_o_b = moment(date_o_b, ["DD-MM-YYYY", "YYYY-MM-DD"]).add(1, 'h').valueOf();
+    let d_o_b = moment(date_o_b, ["DD-MM-YYYY", "YYYY-MM-DD"]).add(1, 'h').valueOf();
 
     if (admin === 0 || admin === '0' || admin === 'f' || admin === 'false' || admin === 'no')
         admin = false;
@@ -33,7 +33,7 @@ router.post('/', function(req, res){
     }
 
     //chain validation checks, first one to fail will cause the code to break instantly
-    var validated = validator.isValidEmail(res, email) &&
+    let validated = validator.isValidEmail(res, email) &&
                     validator.isValidPassword(res, password) &&
                     validator.isValidPhoneNumber(res, phone_number) &&
                     validator.isOverMinimumAge(res, d_o_b) &&
@@ -42,7 +42,7 @@ router.post('/', function(req, res){
     if (!validated)
         return;
 
-    var extras = {
+    let extras = {
         name: name,
         requestVerification: true
     };
@@ -60,8 +60,7 @@ router.post('/', function(req, res){
                     //firebase errors come as object {code, message}, return only message
                     return res.badRequest(err.message);
                 }
-
-                var info = {
+                let info = {
                     _id: firebaseResponse.user.id,
                     name: firebaseResponse.user.displayName,
                     email: firebaseResponse.user.email,
@@ -76,9 +75,9 @@ router.post('/', function(req, res){
                         return res.badRequest("Something unexpected happened");
                     }
 
-                    var info = {
+                        let info = {
                         name: user.name,
-                        d_o_b: user.d_o_b,
+                        d_o_b: moment(user.d_o_b),
                         token: firebaseResponse.token,
                         refreshToken: firebaseResponse.refreshToken,
                         expiryMilliseconds: firebaseResponse.expiryMilliseconds
@@ -89,6 +88,5 @@ router.post('/', function(req, res){
         }
     })
 });
-
 
 module.exports = router;

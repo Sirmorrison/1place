@@ -1,34 +1,102 @@
-var express = require('express');
-var router = express.Router();
+let express = require('express');
+let router = express.Router();
 
-var User = require('../../models/user');
+let User = require('../../models/user');
+let validator = require('../../utils/validator');
 
 router.get('/', function (req,res) {
-    User.find(req.user.id)
+    User.findById( req.user.id)
         .populate({
             path: 'followers.userId',
-            select:'name photo email coverImageUrl'
+            select:'name photoUrl email coverImageUrl'
         })
         .populate({
             path: 'following.userId',
-            select:'name photo email coverImageUrl'
+            select:'name photoUrl email coverImageUrl'
         })
         .sort({date: -1})
         .exec(function(err, user) {
             if (err){
+                console.log(err);
                 return res.serverError("Something unexpected happened");
             }
-            var result = {
+
+            let result = {
                 followers: user.followers,
                 following: user.following
             };
+
             res.success(result);
         });
 });
 
 router.post('/:userId', function (req,res) {
 
-    var updateOperation = {
+    let followingId = req.params.userId,
+        userId = req.user.id;
+
+    if (followingId === userId) {
+        return res.badRequest("you cannot follow yourself");
+    }
+
+    User.update({
+        "_id": followingId,
+        "followers": {
+            "$not": {
+                "$elemMatch": {
+                    "userId": userId
+                }
+            }
+        }
+    }, {
+        $addToSet: {
+            followers: {
+                "userId": userId
+            }
+        }
+    },function (err) {
+        if (err) {
+            return res.badRequest("Something unexpected happened");
+        }
+        res.success({following: true});
+    });
+
+    User.update({
+        "_id": userId,
+        "following": {
+            "$not": {
+                "$elemMatch": {
+                    "userId": followingId
+                }
+            }
+        }
+    }, {
+        $addToSet: {
+            following: {
+                "userId": followingId
+            }
+        }
+    }, function (err) {
+        if (err) {
+            return res.badRequest("Something unexpected happened");
+        }
+        res.success({following: true});
+    });
+});
+
+router.delete('/unfollow/:userId', function (req,res) {
+
+    let followingId = req.params.userId,
+        userId = req.user.id;
+
+    if(followingId.length <= 0){
+        return res.badRequest('field must be a string and cannot be empty');
+    }
+    if (followingId === userId) {
+        return res.badRequest("you cannot follow yourself");
+    }
+
+    let updateOperation = {
         '$pull': {
             'followers': {
                 'userId': req.user.id
@@ -36,7 +104,7 @@ router.post('/:userId', function (req,res) {
         }
     };
 
-    var updateOperation2 = {
+    let updateOperation2 = {
         '$pull': {
             'following': {
                 'userId': req.params.userId
@@ -44,60 +112,20 @@ router.post('/:userId', function (req,res) {
         }
     };
 
-    User.update({_id: req.params.userId}, updateOperation, function (err) {
-        if (err){
+    User.update({_id: followingId}, updateOperation, function (err, user) {
+        if (err) {
             console.log(err);
-            return res.badRequest("Some error occurred");
+            return res.badRequest("Something unexpected happened");
         }
-
-        var followingId = req.params.userId,
-            userId = req.user.id;
-
-        if (followingId === userId) {
-            return res.badRequest("you cannot follow yourself");
-        }
-
-        User.findById(followingId, function (err, user) {
-            if (err) {
-                console.log(err);
-                return res.badRequest("Something unexpected happened");
-            }
-
-            user.followers.push({userId: userId});
-            user.save(function (err) {
-                if (err) {
-                    return res.badRequest("Something unexpected happened");
-                }
-                res.success({following: true});
-            });
-        });
+        console.log(user);
+        res.success({following: false});
     });
 
-    User.update({_id: req.user.id}, updateOperation2, function (err, pullResult) {
-        if (err){
-            console.log(err);
-            return res.badRequest("Some error occurred");
+    User.update({_id: userId}, updateOperation2, function (err, user) {
+        if (err) {
+            return res.badRequest("Something unexpected happened");
         }
-
-        var followingId = req.params.userId,
-            userId = req.user.id;
-
-        if (followingId === userId) {
-            return res.badRequest("you cannot follow yourself");
-        }
-
-        User.findById(userId, function (err, user) {
-            if (err) {
-                return res.badRequest("Something unexpected happened");
-            }
-
-            user.following.push({userId: followingId});
-            user.save(function (err) {
-                if (err) {
-                    return res.badRequest("Something unexpected happened");
-                }
-            });
-        });
+        res.success({following: false});
     });
 });
 

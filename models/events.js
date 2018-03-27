@@ -1,7 +1,7 @@
-var mongoose = require("mongoose");
-var Schema = mongoose.Schema;
+let mongoose = require("mongoose");
+let Schema = mongoose.Schema;
 
-var Event = new Schema({
+let Event = new Schema({
     event_type: {
         type: String,
         required: true

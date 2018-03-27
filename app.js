@@ -1,11 +1,11 @@
 const express = require('express');
-var app = express();
+let app = express();
 
 //setup cors to accept requests from everywhere
 const cors = require('cors');
 app.use(cors());
 
-var path = require('path');
+let path = require('path');
 app.use(express.static(path.join(__dirname, 'public')));
 
 //log all requests to the console
@@ -17,21 +17,28 @@ const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+const multipart = require('connect-multiparty');
+let multipartMiddleware = multipart();
+app.use(multipartMiddleware);
+
 //consistent reply functions from all endpoints
-var reply = require('./middlewares/reply');
+let reply = require('./middlewares/reply');
 app.use(reply.setupResponder);
 
-var config = require('./config');
-var mongoose = require('mongoose');
+let config = require('./config');
+let mongoose = require('mongoose');
 
 mongoose.connect(config.mongoUrl);
-var db = mongoose.connection;
+let db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error'));
 db.once('open', () => console.log('connected to one place database'));
 
 //routers
-var account = require('./routers/account');
+let account = require('./routers/account');
 app.use('/account', account);
+
+let activity = require('./routers/activity');
+app.use('/activity', activity);
 
 app.use(function(err, req, res, next){
 	res.status(400).json(err);

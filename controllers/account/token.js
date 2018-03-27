@@ -1,13 +1,13 @@
-var express = require('express');
-var router = express.Router();
+let express = require('express');
+let router = express.Router();
 
 const config = require('../../config');
-var FirebaseAuth = require('firebaseauth');
-var firebase = new FirebaseAuth(config.FIREBASE_API_KEY);
+let FirebaseAuth = require('firebaseauth');
+let firebase = new FirebaseAuth(config.FIREBASE_API_KEY);
 
 router.post('/', function(req, res){
 
-    var refreshToken = req.body.refreshToken || req.query.refreshToken || req.headers['x-access-refreshToken'];
+    let refreshToken = req.body.refreshToken || req.query.refreshToken || req.headers['x-access-refreshToken'];
 
     if (typeof(refreshToken) !== 'string'){
         return res.badRequest('refreshToken is required');

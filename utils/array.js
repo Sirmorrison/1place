@@ -1,5 +1,5 @@
 Array.prototype.unique = function(mutate) {
-    var unique = this.reduce(function(accum, current) {
+    let unique = this.reduce(function(accum, current) {
         if (accum.indexOf(current) < 0) {
             accum.push(current);
         }
@@ -7,7 +7,7 @@ Array.prototype.unique = function(mutate) {
     }, []);
     if (mutate) {
         this.length = 0;
-        for (i = 0; i < unique.length; ++i) {
+        for (let i = 0; i < unique.length; ++i) {
             this.push(unique[i]);
         }
         return this;

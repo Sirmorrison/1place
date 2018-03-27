@@ -1,8 +1,13 @@
-var express = require('express');
-var router = express.Router();
+let express = require('express');
+let router = express.Router();
 
-var Posts = require('../../models/posts');
-var arrayUtils = require('../../utils/array');
+const config = require('../../config');
+let cloudinary = require('cloudinary');
+    cloudinary.config(config.cloudinary);
+
+let Post = require('../../models/posts');
+let arrayUtils = require('../../utils/array');
+let validator = require('../../utils/validator');
 
 /*** END POINT FOR GETTING POST OF A USER BY CURRENTLY LOGGED IN USER */
 router.get('/', function(req, res) {
@@ -10,15 +15,13 @@ router.get('/', function(req, res) {
     Post.find({postedBy: req.user.id})
         .populate({
             path: 'likes.userId',
-            select: 'name photo email coverImageUrl'
+            select: 'name photoUrl email coverImageUrl'
         })
         .populate({
             path: 'tagged.userId',
-            select:'name photo email coverImageUrl'
+            select:'name photoUrl email coverImageUrl'
         })
-
         .exec(function (err, post) {
-
             if (err) {
                 return res.badRequest("Something unexpected happened");
             }
@@ -26,7 +29,7 @@ router.get('/', function(req, res) {
                 return res.success([]);
             }
 
-            var nPost = post.length,
+            let nPost = post.length,
                 data ={
                     no_post: nPost,
                     post: post
@@ -62,9 +65,10 @@ router.get('/:userId', function(req, res) {
         });
 });
 
-/*** END POINT FOR GETTING PROFILE POST OF A USER BY ANOTHER CURRENTLY LOGGED IN USER */
+/*** END POINT A POST BY ITS ID BY CURRENTLY LOGGED IN USERS */
 router.get('/:postId', function (req,res) {
-    Posts.findById(req.params.postId)
+
+    Post.findById(req.params.postId)
         .populate({
             path: 'postedBy',
             select:'name photo'
@@ -74,12 +78,11 @@ router.get('/:postId', function (req,res) {
                 return res.serverError("Something unexpected happened");
             }
 
-            var info = {
+            let info = {
                 message: post.message,
                 mediaUrl: post.mediaUrl,
                 mediaType: post.mediaType,
                 tags: post.tagged,
-                share: post.shares,
                 postedBy: post.postedBy,
                 likes: post.likes.length,
                 comments: post.comments.length
@@ -89,16 +92,23 @@ router.get('/:postId', function (req,res) {
         });
 });
 
-/*** END POINT FOR GETTING PROFILE POST OF A USER BY ANOTHER CURRENTLY LOGGED IN USER */
+/*** END POINT FOR POST CREATION BY A CURRENTLY LOGGED IN USER */
 router.post('/', function (req, res) {
-    var message = req.body.message;
-    var mediaUrl = req.body.mediaUrl;
-    var mediaType = req.body.mediaType;
-    var tags = req.body.tagged;
+    let message = req.body.message;
+    let mediaUrl = req.body.mediaUrl;
+    let mediaType = req.body.mediaType;
+    let tags = req.body.tagged;
 
-    if (message && typeof(message) !== 'string'){
-        return res.badRequest('message is required');
+    let values = {};
+
+    if (message){
+        let vmess = validator.isSentence(res, message);
+        if(!vmess)
+            return;
+            values.message = message;
     }
+    let validate = validator.isWord(res, mediaUrl) &&
+                    validator.isWord()
     if (typeof(mediaUrl) !== 'string'){
         return res.badRequest('mediaUrl is required');
     }
@@ -109,23 +119,14 @@ router.post('/', function (req, res) {
         return res.badRequest('Tagged should be a json array of user Ids (string)')
     }
 
-    var values = {
-        mediaUrl: mediaUrl,
-        mediaType: mediaType,
-        postedBy:  req.user.id
-};
-
-    if (message){
-        values.message = message;
-    }
 
     if (tags){
         //remove duplicates before proceeding
         arrayUtils.removeDuplicates(tags);
 
         values.tagged = []; //new empty array
-        for (var i = 0; i < tags.length ; i++){
-            var userId = tags[i];
+        for (let i = 0; i < tags.length ; i++){
+            let userId = tags[i];
 
             if (typeof(userId) !== "string"){
                 return res.badRequest("User IDs in tagged array must be string");
@@ -135,7 +136,7 @@ router.post('/', function (req, res) {
         }
     }
 
-    Posts.create(values, function (err, post) {
+    Post.create(values, function (err, post) {
         if (err){
             console.log(err);
             return res.serverError("Something unexpected happened");
@@ -145,10 +146,65 @@ router.post('/', function (req, res) {
     });
 });
 
-/*** END POINT FOR GETTING PROFILE POST OF A USER BY ANOTHER CURRENTLY LOGGED IN USER */
-router.put('/:postId', function (req, res) {
+/*** END POINT FOR POST CREATION BY A CURRENTLY LOGGED IN USER */
+router.post('/', function (req, res) {
+    let file = req.files.null;
+    console.log(file.path);
 
-    var message = req.body.message,
+    let validated = validator.isFile(res, file);
+    if(!validated)
+        return;
+
+    cloudinary.v2.uploader.upload(file.path, function(err, result) {
+        if (err) {
+            return res.badRequest(err);
+        }else {
+            let photoUrl = result.url;
+
+            User.findByIdAndUpdate(req.user.id, {$set: {photoUrl: photoUrl}}, {new: true})
+                .populate({
+                    path: 'followers.userId',
+                    select: 'name photo email coverImageUrl'
+                })
+                .populate({
+                    path: 'following.userId',
+                    select: 'name photo email coverImageUrl'
+                })
+                .exec(function (err, user) {
+                        if (err) {
+                            console.log(err);
+                            return res.serverError("Something unexpected happened");
+                        }
+                        if (!user) {
+                            return res.badRequest("User profile not found please be sure you are still logged in");
+                        }
+
+                        let info = {
+                            coverImageUrl: user.coverImageUrl,
+                            photo: user.photoUrl,
+                            name: user.name,
+                            email: user.email,
+                            username: user.username,
+                            phone_number: user.phone_number,
+                            address: user.address,
+                            bio: user.bio,
+                            status: user.status,
+                            d_o_b: user.d_o_b,
+                            followers: user.followers,
+                            following: user.following
+                        };
+                        res.success(info);
+                    }
+                )
+        }
+    });
+    // fs.unlink(file);
+});
+
+/*** END POINT FOR EDITING POST BY A CURRENTLY LOGGED IN USER */
+router.post('/:postId', function (req, res) {
+
+    let message = req.body.message,
         postedBy =  req.user.id,
         tags = req.body.tagged;
 
@@ -162,7 +218,7 @@ router.put('/:postId', function (req, res) {
         return res.badRequest('Tagged should be a json array of user Ids (string)')
     }
 
-    var values = {};
+    let values = {};
     values.postedBy = postedBy;
 
     if (message){
@@ -173,8 +229,8 @@ router.put('/:postId', function (req, res) {
         arrayUtils.removeDuplicates(tags);
 
         values.tagged = []; //new empty array
-        for (var i = 0; i < tags.length; i++) {
-            var userId = tags[i];
+        for (let i = 0; i < tags.length; i++) {
+            let userId = tags[i];
 
             if (typeof(userId) !== "string") {
                 return res.badRequest("User IDs in tagged array must be string");
@@ -184,116 +240,31 @@ router.put('/:postId', function (req, res) {
         }
     }
 
-    var currentPost = {
-        _id: req.params.postId ,
-        "post.postedBy": req.user.id
-    };
+    // let currentPost = {
+    //     _id: req.params.postId ,
+    //     "post.postedBy": req.user.id
+    // };
 
-    User.update(currentPost, {$set: {'post.$': values}}, function (err, result) {
+    Post.findAndModify({query: {_id: req.params.postId, postedBy: req.user.id}}, {$set: values}, {new: true}, function (err, post) {
+
         if (err) {
-            console.log(err);
             return res.serverError("Something unexpected happened");
         }
 
-        res.success(result);
-    });
-    // Posts.findAndModify({query: {_id: req.params.postId, postedBy: req.user.id}}, {$set: values}, function (err, post) {
-    //
-    //     if (err) {
-    //         return res.serverError("Something unexpected happened");
-    //     }
-    //
-    //     res.success(post);
-    // });
-});
-
-/*** END POINT FOR GETTING PROFILE POST OF A USER BY ANOTHER CURRENTLY LOGGED IN USER */
-router.post('/:postId/like', function (req, res) {
-    var updateOperation = {
-        '$pull': {
-            'likes': {
-                'userId': req.user.id
-            }
-        }
-    };
-
-    Posts.update({_id: req.params.postId}, updateOperation, function (err, pullResult) {
-        if (err){
-            console.log(err);
-            return res.badRequest("Some error occurred");
-        }
-
-        Posts.findById(req.params.postId, function (err, post) {
-            if (err) {
-                return res.serverError("Something unexpected happened");
-            }
-
-            post.likes.push({userId: req.user.id});
-            post.save(function (err, post) {
-                if (err) {
-                    return res.serverError("Something unexpected happened");
-                }
-                res.success(post);
-                // res.success({liked: true});
-            });
-        });
+        res.success(post);
     });
 });
 
-/*** END POINT FOR GETTING PROFILE POST OF A USER BY ANOTHER CURRENTLY LOGGED IN USER */
-router.post('/:postId/like', function (req, res) {
-    var updateOperation = {
-        $addToSet: {
-            likes: {
-                userId: req.user.id
-            }
-        }
-    };
+/*** END POINT FOR DELETING A POST BY A CURRENTLY LOGGED IN USER */
+router.delete('/:postId', function (req, res) {
 
-    Posts.update({_id: req.params.postId}, updateOperation, function (err, pullResult) {
-        if (err){
-            console.log(err);
-            return res.badRequest("Some error occurred");
-        }
-
-        console.log(pullResult);
-
-        res.success({liked: false});
-
-        // Posts.findById(req.params.postId, function (err, post) {
-        //     if (err) {
-        //         return res.serverError("Something unexpected happened");
-        //     }
-        //
-        //     post.likes.push({userId: req.user.id});
-        //     post.save(function (err, post) {
-        //         if (err) {
-        //             return res.serverError("Something unexpected happened");
-        //         }
-        //         res.success(post);
-        //         // res.success({liked: true});
-        //     });
-        // });
-    });
-});
-
-/*** END POINT FOR GETTING PROFILE POST OF A USER BY ANOTHER CURRENTLY LOGGED IN USER */
-router.delete('/:postId/like', function (req, res) {
-    var updateOperation = {
-        '$pull': {
-            'likes': {
-                'userId': req.user.id
-            }
-        }
-    };
-
-    Posts.update({_id: req.params.postId}, updateOperation, function (err) {
+    Post.delete({_id: req.params.postId}, function (err) {
         if (err) {
             console.log(err);
             return res.badRequest("Some error occurred");
         }
 
-        res.success({liked: false});
+        res.success({deleted: true});
     });
 });
 

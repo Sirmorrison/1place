@@ -13,7 +13,6 @@ let fields = {
         type: String,
         required: true
     },
-    username: String,
     phone_number: {
         type: String,
         unique: true
@@ -31,16 +30,21 @@ let fields = {
         default: false,
         required: true
     },
+    username: String,
     country: String,
+    State: String,
     city: String,
     gender: String,
     status: String,
     bio: String,
     photoUrl: String,
+    occupation: String,
+    profession: String,
     coverImageUrl: String,
-    address:String,
     followers:[userIdSchema],
     following:[userIdSchema],
+    dob_count: Number, //number of dob changing per month
+    dob_next: Date //time to next dob changing
 };
 
 let User = new Schema(fields, { timestamps: true });

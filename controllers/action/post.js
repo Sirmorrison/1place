@@ -94,13 +94,14 @@ router.get('/:postId', function (req,res) {
 
 /*** END POINT FOR POST CREATION BY A CURRENTLY LOGGED IN USER */
 router.post('/', function (req, res) {
-    let message = req.body.message;
-    let mediaUrl = req.body.mediaUrl;
-    let mediaType = req.body.mediaType;
-    let tags = req.body.tagged;
+    let message = req.body.message,
+        mediaUrl = req.body.mediaUrl,
+        mediaType = req.body.mediaType,
+        tags = req.body.tagged;
 
     let values = {};
 
+    values.postedBy = req.user.id;
     if (message){
         let vmess = validator.isSentence(res, message);
         if(!vmess)
@@ -108,7 +109,7 @@ router.post('/', function (req, res) {
             values.message = message;
     }
     let validate = validator.isWord(res, mediaUrl) &&
-                    validator.isWord()
+                    validator.isWord();
     if (typeof(mediaUrl) !== 'string'){
         return res.badRequest('mediaUrl is required');
     }

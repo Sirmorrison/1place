@@ -35,6 +35,9 @@ router.post('/:userId', function (req,res) {
     let followingId = req.params.userId,
         userId = req.user.id;
 
+    if (!followingId) {
+        return res.badRequest("Please select a user to follow");
+    }
     if (followingId === userId) {
         return res.badRequest("you cannot follow yourself");
     }
@@ -89,8 +92,8 @@ router.delete('/unfollow/:userId', function (req,res) {
     let followingId = req.params.userId,
         userId = req.user.id;
 
-    if(followingId.length <= 0){
-        return res.badRequest('field must be a string and cannot be empty');
+    if (!followingId) {
+        return res.badRequest("Please select a user to follow");
     }
     if (followingId === userId) {
         return res.badRequest("you cannot follow yourself");
@@ -112,16 +115,15 @@ router.delete('/unfollow/:userId', function (req,res) {
         }
     };
 
-    User.update({_id: followingId}, updateOperation, function (err, user) {
+    User.update({_id: followingId}, updateOperation, function (err) {
         if (err) {
             console.log(err);
             return res.badRequest("Something unexpected happened");
         }
-        console.log(user);
         res.success({following: false});
     });
 
-    User.update({_id: userId}, updateOperation2, function (err, user) {
+    User.update({_id: userId}, updateOperation2, function (err) {
         if (err) {
             return res.badRequest("Something unexpected happened");
         }

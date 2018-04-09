@@ -14,28 +14,65 @@ let validator = require('../../utils/validator'),
     User = require('../../models/user');
 
 /*** END POINT FOR GETTING PERSONAL PROFILE BY CURRENTLY LOGGED IN USER */
-router.get('/', function(req, res){
+router.get('/', function(req, res) {
 
-    User.findById(req.user.id)
-        .populate({
-            path: 'followers.userId',
-            select:'name photoUrl email coverImageUrl'
-        })
-        .populate({
-            path: 'following.userId',
-            select:'name photoUrl email coverImageUrl'
-        })
-        .sort({date: -1})
-        .exec(function(err, user) {
+    let id = req.user.id;
+
+    User.aggregate([
+        {$match: {_id: id}},
+        {
+            $lookup: {
+                from: "posts",
+                localField: "id",
+                foreignField:"postedBy.userId",
+                as: "Post"
+            }
+        },
+        {
+            $lookup: {
+                from: "comments",
+                localField: "id",
+                foreignField: "commentedBy.userId",
+                as: "Comment"
+            }
+        },
+        // {
+        //     $lookup: {
+        //         from: "Comment",
+        //         localField: "postId",
+        //         foreignField: "postId",
+        //         as: "comment"
+        //     }
+        // },
+        {$unwind: {path: "$post", preserveNullAndEmptyArrays: true}},
+        {$unwind: {path: "$comment", preserveNullAndEmptyArrays: true}}
+    ], function (err, data) {
+        if (err) {
+            console.log(err);
+            return res.badRequest("Something unexpected happened");
+        }
+        // res.success(data);
+
+        //noinspection JSDuplicatedDeclaration
+        User.populate(data,{
+                'path': 'followers.userId following.userId',
+                'select': 'name photoUrl email coverImageUrl'
+        },
+        // User.populate(data, {
+        //     'path': 'following.userId',
+        //     'select': 'name photoUrl email coverImageUrl'
+        // },
+        function (err, user) {
 
             if (err) {
+                console.log(err);
                 return res.badRequest("Something unexpected happened");
             }
             if (!user) {
                 return res.badRequest("YOU NEED TO BE A REGISTERED USER TO VIEW GET ACCESS");
             }
 
-            let info = {
+            let info = {$elemMatch: {
                 coverImageUrl: user.coverImageUrl,
                 photo: user.photoUrl,
                 name: user.name,
@@ -48,11 +85,15 @@ router.get('/', function(req, res){
                 d_o_b: moment(user.d_o_b),
                 nFollowers: user.followers.length,
                 nFollowing: user.following.length,
-                followers: user.followers,
-                following: user.following
-            };
+                followers: user.followers.userId,
+                following: user.following,
+                post: user.post,
+                comments: user.comments
+            },
 
-        res.success(info);
+            };
+            res.success(info);
+        });
     });
 });
 
@@ -95,7 +136,7 @@ router.get('/:userId', function(req, res){
                     following: user.following
                 };
 
-        res.success(info);
+        res.success(user);
     });
 });
 
@@ -108,11 +149,9 @@ router.post('/update', function(req, res){
         country = req.body.country,
         city = req.body.city,
         gender = req.body.gender,
-        status = req.body.status,
-        date_o_b = req.body.d_o_b,
-        d_o_b = moment(date_o_b, ["DD-MM-YYYY", "YYYY-MM-DD"]).add(1, 'h').valueOf();
+        status = req.body.status;
 
-    if (!(name || d_o_b || address || bio || country || city || status || gender )){
+    if (!(name || address || bio || country || city || status || gender )){
         return res.badRequest('Please input the value to the field you would love to update');
     }
 
@@ -159,12 +198,6 @@ router.post('/update', function(req, res){
         if(!address1)
             return;
         profile.address = address;
-    }
-    if (d_o_b){
-        let date = validator.isOverMinimumAge(res, d_o_b);
-        if(!date)
-            return;
-        profile.d_o_b = d_o_b;
     }
 
     User.findByIdAndUpdate(req.user.id, {$set: profile}, {new: true})
@@ -392,6 +425,25 @@ router.post('/phoneNumber', function(req, res){
     })
 });
 
+/*** END POINT FOR UPDATING PROFILE DATE OF BIRTH OF CURRENTLY LOGGED IN USER */
+router.post('/dob', function(req, res){
+
+    let date_o_b = req.body.d_o_b,
+        d_o_b = moment(date_o_b, ["DD-MM-YYYY", "YYYY-MM-DD"]).add(1, 'h').valueOf(),
+        id = req.user.id;
+
+    let valid = validator.isWord(res, biz_name);
+    if(!valid) return;
+
+    dobUpdate(d_o_b, id, function (err, result) {
+        if (err){
+            res.badRequest(err);
+        }else {
+            res.success(result);
+        }
+    })
+});
+
 /*** END POINT FOR FOR REQUESTING PASSWORD CHANGE BY LOGGED IN USER */
 router.post('/edit_password', function(req, res){
 
@@ -416,5 +468,59 @@ router.post('/edit_password', function(req, res){
         res.success(info);
     });
 });
+
+function dobUpdate(d_o_b, id, callback){
+    User.findById(id, function (err, data) {
+        if (err) {
+            console.log(err);
+            return callback("Something unexpected happened");
+        }
+        if (!data) {
+            return callback("User not found");
+        }
+        if(data.dob_count === 2 && data.dob_next != {$gt: Date.now()}){
+            console.log('im here 2');
+            return callback("You have reached the maximum allowable name changes of 2 per month");
+        }
+        if(data.dob_count === 2 && data.dob_next != {$lt: Date.now()}){
+            data.d_o_b = d_o_b;
+            data.dob_count = 1;
+            data.dob_next = undefined;
+            data.save(function (err, result) {
+                if (err) {
+                    console.log(err);
+                    return callback("Something unexpected happened");
+                }
+                console.log(result);
+
+                return callback(null, result)
+            })
+        }
+        if(data.biz_name_count === 1){
+            data.d_o_b = d_o_b;
+            data.dob_count = 2;
+            data.dob_next = Date.now() + 2592000000;
+            data.save(function (err, result) {
+                if (err) {
+                    console.log(err);
+                    return callback("Something unexpected happened");
+                }
+                console.log(result);
+
+                return callback(null, result)
+            })
+        }else {
+            data.d_o_b = d_o_b;
+            data.dob_count = 1;
+            data.save(function (err, result) {
+                if (err) {
+                    console.log(err);
+                    return callback("Something unexpected happened");
+                }
+                return callback(null, result)
+            })
+        }
+    });
+}
 
 module.exports = router;

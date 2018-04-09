@@ -19,6 +19,9 @@ let postFields = {
     postedBy: {
         type: mongoose.Schema.Types.String,
         ref: 'User'
+    },
+    comments: {
+
     }
 };
 

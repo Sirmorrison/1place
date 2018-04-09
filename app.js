@@ -37,8 +37,14 @@ db.once('open', () => console.log('connected to one place database'));
 let account = require('./routers/account');
 app.use('/account', account);
 
-let activity = require('./routers/activity');
-app.use('/activity', activity);
+let action = require('./routers/action');
+app.use('/action', action);
+
+let business = require('./routers/business');
+app.use('/business', business);
+
+let admin = require('./routers/admin');
+app.use('/admin', admin);
 
 app.use(function(err, req, res, next){
 	res.status(400).json(err);

@@ -23,7 +23,7 @@ exports.isValidPhoneNumber = function(res, phoneNumber, optional){
 
 exports.isSentence = function(res, sentence, optional){
     if (!optional && !sentence) {
-        return res.badRequest('Address is required');
+        return res.badRequest('A required field is missing');
     }
     if (typeof(sentence) !== 'string' || (sentence.trim().indexOf(' ') <= 0 || sentence.trim().length > 120 )){
         return res.badRequest('field value must be a string and must contain more than one word and less than 120 characters');
@@ -32,12 +32,37 @@ exports.isSentence = function(res, sentence, optional){
     return true;
 };
 
+// exports.isBizCategory = function(res, category, optional){
+//     let allowedCategories = ["event centre", "catering","pastries/cake design", "transportation", "entertainment",
+//                             'decoration','dj','mc','comedy','make-overs', 'fashion', 'printing press','business centre',
+//                             'grocery', 'security', 'jewelry', 'gift shops', 'event planning', 'ushering']
+//     if (!optional && !category) {
+//         return res.badRequest('category is required');
+//     }
+//     if (typeof(category) !== 'string' || allowedCategories.indexOf(category.toLowerCase()) < 0) {
+//         return res.badRequest("category of business is required. Please select from the list given");
+//     }
+//
+//     return true;
+// };
+
 exports.isWord = function(res, word, optional){
     if (!optional && !word) {
-        return res.badRequest('field is required');
+        return res.badRequest('A required field is missing');
     }
     if (typeof(word) !== 'string' ||  word.trim().length <= 0){
         return res.badRequest('field must be a string and cannot be empty');
+    }
+
+    return true;
+};
+
+exports.isCategory = function(res, cate_tags, optional){
+    if (!optional && !cate_tags) {
+        return res.badRequest('A category is field is required');
+    }
+    if (typeof(cate_tags) && !Array.isArray(cate_tags)){
+        return res.badRequest('Tags should be a json array of user Ids (string)')
     }
 
     return true;
@@ -65,6 +90,19 @@ exports.isFullname = function(res, name, optional){
     }
 
 	return true;
+};
+
+exports.isName = function(res, name, optional){
+    if (!optional && !name) {
+        return res.badRequest('Name is required');
+    }
+
+    let validName = /^[A-Za-z0-9_.'-]+(?:\s+[A-Za-z0-9_.'-]+)*$/.test(name); //https://stackoverflow.com/questions/11522529/regexp-for-checking-the-full-name
+    if (!validName){
+        return res.badRequest('Business Name is not valid. name must start with a letter Provide name in full');
+    }
+
+    return true;
 };
 
 exports.isUsername = function(res, username, optional){

@@ -520,9 +520,13 @@ router.put('/bNumber/:bizId/:numberId', function (req, res) {
     Business.updateOne({
             "_id": bizId,
             "createdBy": id,
-            'biz_numbers._id': numberId
-        },
-        {$set: {'biz_numbers': update}}, {multi: true}, function (err, result) {
+            "biz_numbers": {
+                "$elemMatch": {
+                    "_id": numberId
+                }
+            }
+            // 'biz_numbers._id': numberId
+        }, {$set: {'biz_numbers.$': update}}, function (err, result) {
             if (err) {
                 console.log(err);
                 return res.serverError("Something unexpected happened");
